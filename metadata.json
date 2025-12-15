@@ -1,0 +1,5 @@
+{
+  "name": "NyayaSutra - Indian Court Simulator",
+  "description": "An AI-powered courtroom simulation platform for Indian legal scenarios. Create cases, upload evidence, and watch AI agents (Petitioner, Respondent, Judge) simulate legal proceedings based on Indian Law.",
+  "requestFramePermissions": []
+}
