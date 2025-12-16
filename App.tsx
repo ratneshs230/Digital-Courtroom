@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { LayoutDashboard, Gavel, FolderOpen, Calendar, Scale, Key, Loader2, Database } from 'lucide-react';
+import { LayoutDashboard, Gavel, FolderOpen, Calendar, Scale, Loader2, Database } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import ProjectView from './components/ProjectView';
 import HearingsPage from './components/HearingsPage';
 import SimulationRoom from './components/Simulation';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import ApiKeyManager from './components/ApiKeyManager';
 import { Project, Session } from './types';
 import {
   initStorage,
@@ -83,10 +84,9 @@ const App: React.FC = () => {
     initializeApp();
   }, []);
 
-  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newKey = e.target.value;
-    setApiKey(newKey);
-    localStorage.setItem(API_KEY_STORAGE, newKey);
+  const handleApiKeysChange = (keys: string) => {
+    setApiKey(keys);
+    localStorage.setItem(API_KEY_STORAGE, keys);
   };
 
   const handleCreateProject = async (project: Project) => {
@@ -280,18 +280,10 @@ const App: React.FC = () => {
         </nav>
 
         <div className="p-4 bg-legal-950 border-t border-legal-800 space-y-4">
-          <div className="space-y-1">
-             <label className="text-[10px] uppercase text-legal-500 font-semibold tracking-wider flex items-center gap-1">
-               <Key size={10} /> Gemini API Key
-             </label>
-             <input
-               type="password"
-               value={apiKey}
-               onChange={handleApiKeyChange}
-               placeholder="Paste API Key..."
-               className="w-full bg-legal-900 border border-legal-800 rounded px-2 py-1.5 text-xs text-gray-300 focus:border-saffron focus:ring-1 focus:ring-saffron outline-none transition-all placeholder-gray-700"
-             />
-          </div>
+          <ApiKeyManager
+            onKeysChange={handleApiKeysChange}
+            initialKeys={apiKey}
+          />
           <div className="text-xs text-gray-500 space-y-1">
             <p>© 2025 NyayaSutra AI.</p>
             <p>Indian Legal Simulator.</p>

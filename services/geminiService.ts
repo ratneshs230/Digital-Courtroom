@@ -245,6 +245,22 @@ const buildTerminologyPromptSection = (project: Project, session?: Session): str
 // Track failed API keys with timestamp (to allow retry after cooldown)
 const failedKeys: Map<string, number> = new Map();
 const KEY_COOLDOWN_MS = 60000; // 1 minute cooldown before retrying a failed key
+const KEY_STATUS_STORAGE = 'gemini_api_key_status';
+
+// Update key status in localStorage for UI display
+const updateKeyStatusInStorage = (key: string, status: 'active' | 'failed', failedAt?: number) => {
+  try {
+    const savedStatus = localStorage.getItem(KEY_STATUS_STORAGE);
+    let statusMap: Record<string, { status: string; failedAt?: number }> = {};
+    if (savedStatus) {
+      statusMap = JSON.parse(savedStatus);
+    }
+    statusMap[key] = { status, failedAt };
+    localStorage.setItem(KEY_STATUS_STORAGE, JSON.stringify(statusMap));
+  } catch (e) {
+    console.warn('Failed to update key status in storage:', e);
+  }
+};
 
 // Helper to get all available API keys
 const getAllApiKeys = (): string[] => {
@@ -285,8 +301,16 @@ const getAvailableKeys = (): string[] => {
 
 // Mark a key as failed
 const markKeyFailed = (key: string): void => {
-  failedKeys.set(key, Date.now());
+  const now = Date.now();
+  failedKeys.set(key, now);
+  updateKeyStatusInStorage(key, 'failed', now);
   console.warn(`API key ending in ...${key.slice(-4)} marked as failed. Will retry after cooldown.`);
+};
+
+// Mark a key as active (successful)
+const markKeyActive = (key: string): void => {
+  failedKeys.delete(key);
+  updateKeyStatusInStorage(key, 'active');
 };
 
 // Helper to execute API call with fallback
@@ -309,6 +333,8 @@ const executeWithFallback = async <T>(
     try {
       const client = new GoogleGenAI({ apiKey: key });
       const result = await operation(client);
+      // Mark key as active on success
+      markKeyActive(key);
       return result;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
