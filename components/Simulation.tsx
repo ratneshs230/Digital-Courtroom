@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Pause, Play, User, Gavel, BookOpen, Target, FileText, ChevronDown, ChevronUp, MessageCircle, Send, Upload, X, Paperclip, Edit3, GitBranch, Save, RotateCcw, FolderOpen, Calendar, History, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Pause, Play, User, Gavel, BookOpen, Target, FileText, ChevronDown, ChevronUp, MessageCircle, Send, Upload, X, Paperclip, Edit3, GitBranch, Save, RotateCcw, FolderOpen, Calendar, History, AlertCircle, Download } from 'lucide-react';
 import { Project, Session, Role, SimulationMessage, CaseFile, JudgmentResponse, DocumentCategory, HearingDocument } from '../types';
 import { generateTurn } from '../services/geminiService';
 import { processFiles, ProcessFilesResult } from '../utils/fileProcessor';
+import { exportHearingToPDF } from '../utils/exportService';
 
 interface SimulationRoomProps {
   session: Session;
@@ -119,6 +120,9 @@ const SimulationRoom: React.FC<SimulationRoomProps> = ({ session, project, onBac
 
   // Document panel state
   const [showDocPanel, setShowDocPanel] = useState(true);
+
+  // Print/export ref
+  const transcriptRef = useRef<HTMLDivElement>(null);
 
   // Parent session messages (for continuation hearings)
   const [parentSessionMessages, setParentSessionMessages] = useState<SimulationMessage[]>([]);
@@ -449,6 +453,11 @@ const SimulationRoom: React.FC<SimulationRoomProps> = ({ session, project, onBac
   // Get hearing documents
   const hearingDocuments = session.recentDevelopments || [];
 
+  // Export transcript to PDF
+  const handleExportPDF = () => {
+    exportHearingToPDF(hearingTitle, transcriptRef.current);
+  };
+
   return (
     <div className="h-full flex bg-legal-50">
       {/* Main Courtroom Area */}
@@ -477,6 +486,15 @@ const SimulationRoom: React.FC<SimulationRoomProps> = ({ session, project, onBac
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportPDF}
+              disabled={messages.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-indiaGreen hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              title="Export Transcript as PDF"
+            >
+              <Download size={16} />
+              Export PDF
+            </button>
             {!isSessionComplete ? (
               <button
                 onClick={togglePlay}
@@ -552,7 +570,7 @@ const SimulationRoom: React.FC<SimulationRoomProps> = ({ session, project, onBac
 
       {/* Transcript Area */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6" ref={scrollRef}>
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div ref={transcriptRef} className="max-w-3xl mx-auto space-y-4">
           {/* Parent Session Messages (for continuation hearings) */}
           {session.isContinuation && parentSessionMessages.length > 0 && (
             <div className="mb-6">

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, RefreshCw, FileText, ChevronDown, ChevronUp, Edit3, Save, Calendar, Target, AlertTriangle, CheckCircle, Send, MessageSquare, Briefcase, Gavel, X, Loader2, Upload, Paperclip, FolderOpen, Plus, Trash2, GripVertical, RotateCcw, Columns, Clock } from 'lucide-react';
+import { ArrowLeft, RefreshCw, FileText, ChevronDown, ChevronUp, Edit3, Save, Calendar, Target, AlertTriangle, CheckCircle, Send, MessageSquare, Briefcase, Gavel, X, Loader2, Upload, Paperclip, FolderOpen, Plus, Trash2, GripVertical, RotateCcw, Columns, Clock, Download } from 'lucide-react';
 import { Project, CasePerspective, Role, Evidence, CaseFile, DocumentCategory, TimelineEvent } from '../types';
 import { analyzeAllDocuments, generatePerspectiveFromDrafts, chatWithPerspectiveAgent, regeneratePerspectiveFromEdit } from '../services/geminiService';
 import { processFiles, ProcessFilesResult } from '../utils/fileProcessor';
 import DocumentPanel from './DocumentPanel';
 import ComparisonView from './ComparisonView';
 import TimelineVisualization from './TimelineVisualization';
+import { exportCaseToPDF } from '../utils/exportService';
 
 interface ProjectViewProps {
   project: Project;
@@ -39,6 +40,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({ project, onProceedToHearings,
   const [isUploadingChatFiles, setIsUploadingChatFiles] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
+  const printContentRef = useRef<HTMLDivElement>(null);
 
   // Document panel state
   const [isDocPanelOpen, setIsDocPanelOpen] = useState(false);
@@ -447,6 +449,10 @@ const ProjectView: React.FC<ProjectViewProps> = ({ project, onProceedToHearings,
     }
   };
 
+  const handleExportPDF = () => {
+    exportCaseToPDF(project.caseTitle || project.name, printContentRef.current);
+  };
+
   const perspective = getCurrentPerspective();
 
   return (
@@ -525,6 +531,15 @@ const ProjectView: React.FC<ProjectViewProps> = ({ project, onProceedToHearings,
             Regenerate
           </button>
           <button
+            onClick={handleExportPDF}
+            disabled={project.analysisStatus !== 'completed'}
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-indiaGreen hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+            title="Export Case Brief as PDF"
+          >
+            <Download size={16} />
+            Export PDF
+          </button>
+          <button
             onClick={onProceedToHearings}
             disabled={project.analysisStatus !== 'completed'}
             className="flex items-center gap-2 px-5 py-2.5 bg-saffron hover:bg-orange-500 text-white font-medium rounded-lg shadow-md transition-colors disabled:opacity-50"
@@ -599,7 +614,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({ project, onProceedToHearings,
 
       {/* Perspective Tabs (default view) */}
       {viewMode === 'tabs' && (
-      <div className="bg-white rounded-xl shadow-sm border border-legal-100">
+      <div ref={printContentRef} className="bg-white rounded-xl shadow-sm border border-legal-100">
         <div className="flex border-b border-legal-100">
           <button
             onClick={() => setActiveTab('petitioner')}
