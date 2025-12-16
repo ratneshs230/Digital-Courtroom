@@ -33,6 +33,8 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysChange, initialKeys
   const [showNewKey, setShowNewKey] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkInput, setBulkInput] = useState('');
 
   // Load keys from storage on mount
   useEffect(() => {
@@ -136,6 +138,65 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysChange, initialKeys
     saveKeys(newKeys);
   };
 
+  const handleBulkImport = () => {
+    const lines = bulkInput
+      .split(/[\n,]/) // Split by newline or comma
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+
+    if (lines.length === 0) {
+      setError('No valid keys found');
+      return;
+    }
+
+    const validKeys: string[] = [];
+    const invalidKeys: string[] = [];
+    const duplicateKeys: string[] = [];
+
+    for (const line of lines) {
+      if (!isValidKeyFormat(line)) {
+        invalidKeys.push(line.slice(0, 10) + '...');
+      } else if (keys.some(k => k.key === line) || validKeys.includes(line)) {
+        duplicateKeys.push(line.slice(0, 10) + '...');
+      } else {
+        validKeys.push(line);
+      }
+    }
+
+    if (validKeys.length === 0) {
+      if (invalidKeys.length > 0) {
+        setError(`Invalid key format: ${invalidKeys.join(', ')}`);
+      } else if (duplicateKeys.length > 0) {
+        setError('All keys are duplicates');
+      }
+      return;
+    }
+
+    const newKeyInfos: ApiKeyInfo[] = validKeys.map(key => ({
+      key,
+      status: 'unknown' as const
+    }));
+
+    const updatedKeys = [...keys, ...newKeyInfos];
+    saveKeys(updatedKeys);
+    setBulkInput('');
+    setBulkMode(false);
+    setError(null);
+
+    // Show success message
+    const messages: string[] = [];
+    messages.push(`Added ${validKeys.length} key${validKeys.length > 1 ? 's' : ''}`);
+    if (invalidKeys.length > 0) messages.push(`${invalidKeys.length} invalid`);
+    if (duplicateKeys.length > 0) messages.push(`${duplicateKeys.length} duplicate`);
+    console.log('Bulk import:', messages.join(', '));
+  };
+
+  const handleClearAllKeys = () => {
+    if (confirm('Remove all API keys?')) {
+      saveKeys([]);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'text-green-400';
@@ -210,8 +271,34 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysChange, initialKeys
       {/* Expanded view - full management */}
       {isExpanded && (
         <div className="space-y-2 bg-legal-900/50 rounded-lg p-2">
+          {/* Mode toggle */}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setBulkMode(false)}
+                className={`text-[10px] px-2 py-1 rounded ${!bulkMode ? 'bg-saffron text-white' : 'bg-legal-800 text-gray-400 hover:text-gray-300'}`}
+              >
+                Single
+              </button>
+              <button
+                onClick={() => setBulkMode(true)}
+                className={`text-[10px] px-2 py-1 rounded ${bulkMode ? 'bg-saffron text-white' : 'bg-legal-800 text-gray-400 hover:text-gray-300'}`}
+              >
+                Bulk Import
+              </button>
+            </div>
+            {keys.length > 0 && (
+              <button
+                onClick={handleClearAllKeys}
+                className="text-[10px] text-red-500 hover:text-red-400"
+              >
+                Clear All
+              </button>
+            )}
+          </div>
+
           {/* Key list */}
-          {keys.length > 0 && (
+          {keys.length > 0 && !bulkMode && (
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {keys.map((keyInfo, index) => (
                 <div
@@ -254,23 +341,41 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysChange, initialKeys
             </div>
           )}
 
-          {/* Add new key input */}
-          <div className="relative">
-            <input
-              type={showNewKey ? 'text' : 'password'}
-              value={newKey}
-              onChange={(e) => { setNewKey(e.target.value); setError(null); }}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddKey()}
-              placeholder="Paste new API key..."
-              className="w-full bg-legal-800 border border-legal-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:border-saffron focus:ring-1 focus:ring-saffron outline-none transition-all placeholder-gray-600 pr-16"
-            />
-            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          {/* Bulk import mode */}
+          {bulkMode ? (
+            <div className="space-y-2">
+              <textarea
+                value={bulkInput}
+                onChange={(e) => { setBulkInput(e.target.value); setError(null); }}
+                placeholder="Paste multiple API keys (one per line)..."
+                className="w-full bg-legal-800 border border-legal-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:border-saffron focus:ring-1 focus:ring-saffron outline-none transition-all placeholder-gray-600 font-mono resize-none h-24"
+              />
               <button
-                type="button"
-                onClick={() => setShowNewKey(!showNewKey)}
-                className="p-1 text-gray-500 hover:text-gray-300"
+                onClick={handleBulkImport}
+                disabled={!bulkInput.trim()}
+                className="w-full bg-saffron hover:bg-saffron/90 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs py-1.5 rounded transition-colors"
               >
-                {showNewKey ? <EyeOff size={12} /> : <Eye size={12} />}
+                Import Keys
+              </button>
+            </div>
+          ) : (
+            /* Add new key input - single mode */
+            <div className="relative">
+              <input
+                type={showNewKey ? 'text' : 'password'}
+                value={newKey}
+                onChange={(e) => { setNewKey(e.target.value); setError(null); }}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddKey()}
+                placeholder="Paste new API key..."
+                className="w-full bg-legal-800 border border-legal-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:border-saffron focus:ring-1 focus:ring-saffron outline-none transition-all placeholder-gray-600 pr-16"
+              />
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setShowNewKey(!showNewKey)}
+                  className="p-1 text-gray-500 hover:text-gray-300"
+                >
+                  {showNewKey ? <EyeOff size={12} /> : <Eye size={12} />}
               </button>
               <button
                 type="button"
@@ -280,8 +385,9 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeysChange, initialKeys
               >
                 <Plus size={14} />
               </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {error && (
             <p className="text-[10px] text-red-400 flex items-center gap-1">
