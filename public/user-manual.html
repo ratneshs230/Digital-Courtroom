@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NyayaSutra User Manual - AI Legal Bench</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --saffron: #FF9933;
+            --india-green: #138808;
+            --legal-50: #f4f6f8;
+            --legal-100: #eef0f3;
+            --legal-200: #e2e8f0;
+            --legal-500: #64748b;
+            --legal-800: #1e293b;
+            --legal-900: #0f172a;
+            --legal-950: #020617;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--legal-50);
+            color: var(--legal-900);
+            line-height: 1.7;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--legal-900) 0%, var(--legal-800) 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--saffron), white, var(--india-green));
+        }
+
+        .header h1 {
+            font-family: 'Merriweather', serif;
+            font-size: 3rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header h1 .icon {
+            font-size: 2.5rem;
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .header .version {
+            display: inline-block;
+            background: var(--saffron);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Navigation */
+        .nav-container {
+            background: white;
+            border-bottom: 1px solid var(--legal-200);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            gap: 5px;
+            overflow-x: auto;
+        }
+
+        .nav a {
+            padding: 15px 20px;
+            text-decoration: none;
+            color: var(--legal-500);
+            font-weight: 500;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .nav a:hover, .nav a.active {
+            color: var(--saffron);
+            border-bottom-color: var(--saffron);
+        }
+
+        /* Main Content */
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 40px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: sticky;
+            top: 80px;
+            height: fit-content;
+        }
+
+        .toc {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .toc h3 {
+            font-family: 'Merriweather', serif;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--legal-800);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toc ul {
+            list-style: none;
+        }
+
+        .toc li {
+            margin-bottom: 8px;
+        }
+
+        .toc a {
+            color: var(--legal-500);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .toc a:hover {
+            background: var(--legal-50);
+            color: var(--saffron);
+            padding-left: 16px;
+        }
+
+        .toc .section-title {
+            font-weight: 600;
+            color: var(--legal-800);
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--legal-100);
+        }
+
+        /* Content */
+        .content {
+            min-width: 0;
+        }
+
+        .content section {
+            background: white;
+            border-radius: 12px;
+            padding: 35px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .content h2 {
+            font-family: 'Merriweather', serif;
+            font-size: 1.8rem;
+            color: var(--legal-900);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--saffron);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .content h3 {
+            font-family: 'Merriweather', serif;
+            font-size: 1.3rem;
+            color: var(--legal-800);
+            margin: 30px 0 15px 0;
+        }
+
+        .content h4 {
+            font-size: 1.1rem;
+            color: var(--legal-800);
+            margin: 20px 0 10px 0;
+        }
+
+        .content p {
+            margin-bottom: 15px;
+            color: var(--legal-800);
+        }
+
+        .content ul, .content ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        .content li {
+            margin-bottom: 10px;
+            color: var(--legal-800);
+        }
+
+        /* Feature Cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, var(--legal-50) 0%, white 100%);
+            border: 1px solid var(--legal-200);
+            border-radius: 10px;
+            padding: 25px;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: var(--saffron);
+        }
+
+        .feature-card .icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--saffron), #ffb366);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-card h4 {
+            font-family: 'Merriweather', serif;
+            margin: 0 0 10px 0;
+            color: var(--legal-900);
+        }
+
+        .feature-card p {
+            font-size: 0.9rem;
+            color: var(--legal-500);
+            margin: 0;
+        }
+
+        /* Steps */
+        .steps {
+            counter-reset: step;
+            margin: 25px 0;
+        }
+
+        .step {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: var(--legal-50);
+            border-radius: 10px;
+            border-left: 4px solid var(--saffron);
+        }
+
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            width: 40px;
+            height: 40px;
+            background: var(--saffron);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            margin: 0 0 8px 0;
+            color: var(--legal-900);
+        }
+
+        .step-content p {
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        /* Callouts */
+        .callout {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+        }
+
+        .callout-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .callout-info {
+            background: #e0f2fe;
+            border: 1px solid #7dd3fc;
+        }
+
+        .callout-info .callout-icon { color: #0284c7; }
+
+        .callout-warning {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+        }
+
+        .callout-warning .callout-icon { color: #d97706; }
+
+        .callout-success {
+            background: #dcfce7;
+            border: 1px solid #86efac;
+        }
+
+        .callout-success .callout-icon { color: var(--india-green); }
+
+        .callout-tip {
+            background: #fdf4ff;
+            border: 1px solid #e879f9;
+        }
+
+        .callout-tip .callout-icon { color: #a855f7; }
+
+        /* Code/Keys */
+        .key {
+            display: inline-block;
+            background: var(--legal-100);
+            border: 1px solid var(--legal-200);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--legal-800);
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--legal-200);
+        }
+
+        th {
+            background: var(--legal-900);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: var(--legal-50);
+        }
+
+        /* Screenshots placeholder */
+        .screenshot {
+            background: linear-gradient(135deg, var(--legal-100) 0%, var(--legal-200) 100%);
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            color: var(--legal-500);
+            margin: 20px 0;
+            border: 2px dashed var(--legal-300);
+        }
+
+        .screenshot-label {
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+
+        /* Keyboard shortcuts */
+        .shortcut-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: var(--legal-50);
+            border-radius: 8px;
+        }
+
+        .shortcut-item span {
+            color: var(--legal-800);
+        }
+
+        /* FAQ */
+        .faq-item {
+            border-bottom: 1px solid var(--legal-200);
+            padding: 20px 0;
+        }
+
+        .faq-item:last-child {
+            border-bottom: none;
+        }
+
+        .faq-question {
+            font-weight: 600;
+            color: var(--legal-900);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .faq-question::before {
+            content: 'Q';
+            background: var(--saffron);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .faq-answer {
+            padding-left: 34px;
+            color: var(--legal-500);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--legal-900);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            margin-top: 60px;
+        }
+
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .footer h3 {
+            font-family: 'Merriweather', serif;
+            margin-bottom: 15px;
+            color: var(--saffron);
+        }
+
+        .footer p {
+            opacity: 0.8;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .footer-links a:hover {
+            opacity: 1;
+            color: var(--saffron);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .nav {
+                justify-content: flex-start;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .nav-container, .sidebar {
+                display: none;
+            }
+
+            .main {
+                grid-template-columns: 1fr;
+            }
+
+            .content section {
+                break-inside: avoid;
+            }
+        }
+
+        /* Smooth scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-petitioner {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .badge-respondent {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .badge-judge {
+            background: var(--legal-200);
+            color: var(--legal-800);
+        }
+
+        /* Workflow diagram */
+        .workflow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 30px 0;
+            padding: 30px;
+            background: var(--legal-50);
+            border-radius: 12px;
+        }
+
+        .workflow-step {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .workflow-step .number {
+            width: 30px;
+            height: 30px;
+            background: var(--saffron);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: 700;
+        }
+
+        .workflow-arrow {
+            color: var(--legal-300);
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>
+            <span class="icon">⚖️</span>
+            NyayaSutra User Manual
+        </h1>
+        <p class="subtitle">Complete Guide to the AI-Powered Indian Court Simulator</p>
+        <span class="version">Version 1.0</span>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav-container">
+        <div class="nav">
+            <a href="#overview" class="active">Overview</a>
+            <a href="#getting-started">Getting Started</a>
+            <a href="#projects">Projects</a>
+            <a href="#analysis">AI Analysis</a>
+            <a href="#hearings">Hearings</a>
+            <a href="#simulation">Simulation</a>
+            <a href="#export">Export</a>
+            <a href="#api-keys">API Keys</a>
+            <a href="#faq">FAQ</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="toc">
+                <h3>📑 Contents</h3>
+                <ul>
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#key-features">Key Features</a></li>
+                    <li class="section-title">Getting Started</li>
+                    <li><a href="#api-setup">API Key Setup</a></li>
+                    <li><a href="#first-project">Your First Project</a></li>
+                    <li class="section-title">Working with Cases</li>
+                    <li><a href="#upload-documents">Uploading Documents</a></li>
+                    <li><a href="#ai-analysis">AI Analysis</a></li>
+                    <li><a href="#perspectives">Case Perspectives</a></li>
+                    <li><a href="#chronology">Case Chronology</a></li>
+                    <li class="section-title">Court Simulation</li>
+                    <li><a href="#hearings">Setting Up Hearings</a></li>
+                    <li><a href="#simulation">Live Simulation</a></li>
+                    <li><a href="#judgment">Judgment</a></li>
+                    <li class="section-title">Additional</li>
+                    <li><a href="#export">Exporting PDFs</a></li>
+                    <li><a href="#api-keys">Managing API Keys</a></li>
+                    <li><a href="#faq">FAQ</a></li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Overview Section -->
+            <section id="overview">
+                <h2>🏛️ Overview</h2>
+                <p>
+                    <strong>NyayaSutra</strong> (न्यायसूत्र - "Thread of Justice") is an advanced AI-powered legal research and courtroom simulation platform designed specifically for the Indian legal system. It helps lawyers, law students, and legal professionals prepare for court cases by providing intelligent document analysis, case perspective generation, and realistic courtroom simulations.
+                </p>
+
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>
+                        <strong>Educational Purpose:</strong> NyayaSutra is designed for legal research, education, and case preparation. It should not be used as a substitute for professional legal advice.
+                    </div>
+                </div>
+
+                <h3 id="key-features">Key Features</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="icon">📄</div>
+                        <h4>Smart Document Analysis</h4>
+                        <p>Upload FIRs, affidavits, court orders, and legal documents. AI automatically extracts and categorizes information.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">⚖️</div>
+                        <h4>Dual Perspective Generation</h4>
+                        <p>Get comprehensive analysis from both Petitioner and Respondent viewpoints with legal theories and evidence mapping.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🎭</div>
+                        <h4>Courtroom Simulation</h4>
+                        <p>Experience realistic court hearings with AI-powered opposing counsel and judge generating authentic legal arguments.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">📊</div>
+                        <h4>Timeline Visualization</h4>
+                        <p>See case events in a visual chronological timeline with color-coded sources and expandable details.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">💬</div>
+                        <h4>AI Legal Assistant</h4>
+                        <p>Chat with AI to explore legal strategies, ask questions about the case, and get instant insights.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">📥</div>
+                        <h4>PDF Export</h4>
+                        <p>Export case briefs and hearing transcripts as beautifully formatted PDF documents.</p>
+                    </div>
+                </div>
+
+                <h3>Workflow Overview</h3>
+                <div class="workflow">
+                    <div class="workflow-step">
+                        <div class="number">1</div>
+                        <div>Create Project</div>
+                    </div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step">
+                        <div class="number">2</div>
+                        <div>Upload Documents</div>
+                    </div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step">
+                        <div class="number">3</div>
+                        <div>AI Analysis</div>
+                    </div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step">
+                        <div class="number">4</div>
+                        <div>Review Perspectives</div>
+                    </div>
+                    <span class="workflow-arrow">→</span>
+                    <div class="workflow-step">
+                        <div class="number">5</div>
+                        <div>Court Simulation</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Getting Started Section -->
+            <section id="getting-started">
+                <h2>🚀 Getting Started</h2>
+
+                <h3 id="api-setup">Step 1: Set Up Your API Key</h3>
+                <p>NyayaSutra uses Google's Gemini AI for intelligent document analysis and courtroom simulation. You'll need at least one API key to get started.</p>
+
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Get a Free API Key</h4>
+                            <p>Visit <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a> and sign in with your Google account. Click "Create API Key" to generate a free key.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Add Key to NyayaSutra</h4>
+                            <p>In NyayaSutra, look at the bottom of the left sidebar. Click on "API Keys" to expand the panel, then paste your key and press Enter or click the + button.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Add Multiple Keys (Recommended)</h4>
+                            <p>For uninterrupted usage, add multiple API keys. Click "Bulk Import" to paste several keys at once (one per line). The system will automatically rotate through them.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>
+                        <strong>Pro Tip:</strong> Create 3-5 API keys from different Google accounts for reliable performance. Each free key has usage limits, but multiple keys provide automatic failover.
+                    </div>
+                </div>
+
+                <h3 id="first-project">Step 2: Create Your First Project</h3>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Click "New Case" on Dashboard</h4>
+                            <p>From the main dashboard, click the "New Case" button to open the project creation form.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Fill in Case Details</h4>
+                            <p>Enter a project name, case title, and brief description. Select whether you're representing the <span class="badge badge-petitioner">Petitioner</span> or <span class="badge badge-respondent">Respondent</span>.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Upload Case Documents</h4>
+                            <p>Drag and drop or click to upload relevant documents (PDF, DOCX, TXT). Include FIRs, affidavits, court orders, evidence, and any other relevant materials.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Create Project</h4>
+                            <p>Click "Create Project" to start. The AI will begin analyzing your documents automatically.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Projects Section -->
+            <section id="projects">
+                <h2>📁 Working with Projects</h2>
+
+                <h3 id="upload-documents">Uploading Documents</h3>
+                <p>NyayaSutra supports various document formats commonly used in legal proceedings:</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Format</th>
+                                <th>Extensions</th>
+                                <th>Best For</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>PDF</td>
+                                <td>.pdf</td>
+                                <td>Court orders, judgments, official documents</td>
+                            </tr>
+                            <tr>
+                                <td>Word</td>
+                                <td>.docx</td>
+                                <td>Drafts, written statements, legal briefs</td>
+                            </tr>
+                            <tr>
+                                <td>Text</td>
+                                <td>.txt</td>
+                                <td>Notes, transcripts, simple documents</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Document Categories</h4>
+                <p>The AI automatically categorizes your documents into these types:</p>
+                <ul>
+                    <li><strong>FIR</strong> - First Information Reports</li>
+                    <li><strong>Affidavit</strong> - Sworn statements</li>
+                    <li><strong>Court Order</strong> - Orders from courts/tribunals</li>
+                    <li><strong>Judgment</strong> - Final court decisions</li>
+                    <li><strong>Petition</strong> - Original petitions/plaints</li>
+                    <li><strong>Reply</strong> - Written statements/responses</li>
+                    <li><strong>Evidence</strong> - Documentary evidence</li>
+                    <li><strong>Witness Statement</strong> - Depositions, testimonies</li>
+                    <li><strong>Medical Report</strong> - Medical/forensic reports</li>
+                    <li><strong>Charge Sheet</strong> - Police charge sheets</li>
+                </ul>
+
+                <div class="callout callout-warning">
+                    <span class="callout-icon">⚠️</span>
+                    <div>
+                        <strong>Document Quality:</strong> For best results, ensure documents are clear and text is readable. Scanned documents should have good OCR quality.
+                    </div>
+                </div>
+
+                <h3>Document Panel</h3>
+                <p>Click the "Documents" button in the project header to open the document panel on the right side. Here you can:</p>
+                <ul>
+                    <li>View all uploaded documents with AI-detected metadata</li>
+                    <li>Edit document categories and descriptions</li>
+                    <li>Add context notes for specific documents</li>
+                    <li>Create relationships between documents</li>
+                    <li>Upload additional documents anytime</li>
+                </ul>
+            </section>
+
+            <!-- AI Analysis Section -->
+            <section id="analysis">
+                <h2>🤖 AI Analysis</h2>
+
+                <h3 id="ai-analysis">How Analysis Works</h3>
+                <p>When you create a project, NyayaSutra's AI engine performs a comprehensive analysis of all uploaded documents:</p>
+
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Document Processing</h4>
+                            <p>Each document is processed individually to extract text, identify the document type, and understand its legal significance.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Information Extraction</h4>
+                            <p>AI extracts key information: dates, parties involved, legal provisions cited, claims made, and evidence referenced.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Perspective Generation</h4>
+                            <p>Two comprehensive perspectives are generated - one for Petitioner and one for Respondent - each with complete legal analysis.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Cross-Reference Analysis</h4>
+                            <p>The AI identifies disputed facts, contradictions, and connections between different documents.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="perspectives">Understanding Perspectives</h3>
+                <p>Each perspective includes these detailed sections:</p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="icon">📅</div>
+                        <h4>Chronology</h4>
+                        <p>Timeline of all events with dates, descriptions, and source documents. Drag to reorder events.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">📌</div>
+                        <h4>Key Facts</h4>
+                        <p>Essential facts supporting this party's case. Each fact is editable and linked to evidence.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">📎</div>
+                        <h4>Evidence</h4>
+                        <p>All evidence supporting this perspective, categorized by type (documentary, testimonial, circumstantial, physical).</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">⚖️</div>
+                        <h4>Legal Theory</h4>
+                        <p>The legal argument and framework supporting this party's position.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">💪</div>
+                        <h4>Strengths</h4>
+                        <p>Strong points and advantages in this party's case.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">⚡</div>
+                        <h4>Weaknesses</h4>
+                        <p>Potential vulnerabilities and areas of concern to address.</p>
+                    </div>
+                </div>
+
+                <h3 id="chronology">Working with Chronology</h3>
+                <p>The chronology section allows you to manage the timeline of events:</p>
+                <ul>
+                    <li><strong>Edit Mode:</strong> Click "Edit Chronology" to enable editing</li>
+                    <li><strong>Drag & Drop:</strong> Drag events by the handle (⋮⋮) to reorder</li>
+                    <li><strong>Add Events:</strong> Click "Add Event" to add new timeline entries</li>
+                    <li><strong>Edit Events:</strong> Click the edit icon on any event to modify it</li>
+                    <li><strong>Delete Events:</strong> Remove events that aren't relevant</li>
+                    <li><strong>Save & Re-analyze:</strong> After editing, save changes to regenerate analysis based on the updated timeline</li>
+                </ul>
+
+                <h3>AI Chat Assistant</h3>
+                <p>Each perspective has a built-in AI assistant. Use it to:</p>
+                <ul>
+                    <li>Ask questions about the case</li>
+                    <li>Explore legal strategies</li>
+                    <li>Get explanations of legal concepts</li>
+                    <li>Discuss strengths and weaknesses</li>
+                    <li>Prepare arguments for specific points</li>
+                </ul>
+
+                <div class="callout callout-success">
+                    <span class="callout-icon">✅</span>
+                    <div>
+                        <strong>Attach Documents:</strong> You can attach additional documents to your chat messages for context-specific analysis.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Hearings Section -->
+            <section id="hearings">
+                <h2>📋 Setting Up Hearings</h2>
+
+                <p>Once your case analysis is complete, you can proceed to simulate court hearings. Click "Proceed to Hearings" to access the hearings page.</p>
+
+                <h3>Creating a New Hearing</h3>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Select Hearing Type</h4>
+                            <p>Choose from various hearing types: Bail Hearing, Arguments on Charge, Final Arguments, Evidence Examination, Interim Application, etc.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Add Recent Developments (Optional)</h4>
+                            <p>Upload any new documents or evidence that have emerged since case creation. These will be considered in the hearing.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Set Your Strategy</h4>
+                            <p>Describe your intended approach and key points you want to emphasize. This guides your AI representation.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Configure Simulation</h4>
+                            <p>Set the number of turns (argument rounds) and choose who speaks first.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Start Hearing</h4>
+                            <p>Click "Start Hearing" to begin the courtroom simulation.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Hearing Types Explained</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Typical Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Bail Hearing</td>
+                                <td>Arguments for/against granting bail to the accused</td>
+                                <td>4-6 turns</td>
+                            </tr>
+                            <tr>
+                                <td>Arguments on Charge</td>
+                                <td>Whether charges should be framed against the accused</td>
+                                <td>4-6 turns</td>
+                            </tr>
+                            <tr>
+                                <td>Final Arguments</td>
+                                <td>Concluding arguments before judgment</td>
+                                <td>6-10 turns</td>
+                            </tr>
+                            <tr>
+                                <td>Evidence Examination</td>
+                                <td>Cross-examination and evidence discussion</td>
+                                <td>4-8 turns</td>
+                            </tr>
+                            <tr>
+                                <td>Interim Application</td>
+                                <td>Urgent/interim relief applications</td>
+                                <td>3-5 turns</td>
+                            </tr>
+                            <tr>
+                                <td>Settlement Conference</td>
+                                <td>Mediation and settlement discussions</td>
+                                <td>4-6 turns</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Continuation Hearings</h3>
+                <p>After a hearing concludes, you can create continuation hearings that build upon the previous proceedings. The AI will remember the context from earlier hearings.</p>
+            </section>
+
+            <!-- Simulation Section -->
+            <section id="simulation">
+                <h2>🎭 Courtroom Simulation</h2>
+
+                <p>The simulation room provides a realistic courtroom experience with AI-generated arguments from all parties.</p>
+
+                <h3>Simulation Interface</h3>
+                <ul>
+                    <li><strong>Courtroom Layout:</strong> Visual representation of Petitioner, Judge, and Respondent positions</li>
+                    <li><strong>Transcript Area:</strong> Real-time display of all arguments and exchanges</li>
+                    <li><strong>Strategy Panel:</strong> Your defined strategy visible throughout the hearing</li>
+                    <li><strong>Documents Panel:</strong> Access to hearing documents on the right side</li>
+                </ul>
+
+                <h3>During the Simulation</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="icon">▶️</div>
+                        <h4>Auto-Simulate</h4>
+                        <p>Let the AI generate turns automatically. Click Pause anytime to stop.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">✍️</div>
+                        <h4>Edit Arguments</h4>
+                        <p>Click edit on your side's arguments to modify them before continuing.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">💬</div>
+                        <h4>Respond to Judge</h4>
+                        <p>When the judge asks questions, provide your response with supporting documents.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🔄</div>
+                        <h4>Branch Timeline</h4>
+                        <p>Create alternative branches by editing past arguments and re-simulating.</p>
+                    </div>
+                </div>
+
+                <h3 id="judgment">Understanding the Judgment</h3>
+                <p>After all argument rounds are complete, the <span class="badge badge-judge">Judge</span> delivers a judgment that includes:</p>
+                <ul>
+                    <li><strong>Verdict:</strong> The final decision on the matter</li>
+                    <li><strong>Key Findings:</strong> Important factual and legal findings</li>
+                    <li><strong>Reasoning:</strong> Legal basis for the decision</li>
+                    <li><strong>Directions:</strong> Any orders or next steps</li>
+                </ul>
+
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>
+                        <strong>Continue After Judgment:</strong> You can create a continuation hearing to appeal or address subsequent matters arising from the judgment.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Export Section -->
+            <section id="export">
+                <h2>📥 Exporting Documents</h2>
+
+                <p>NyayaSutra allows you to export your work as professionally formatted PDF documents.</p>
+
+                <h3>Export Case Brief</h3>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Open Your Project</h4>
+                            <p>Navigate to the project you want to export.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Click "Export PDF"</h4>
+                            <p>Find the green "Export PDF" button in the project header.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Print Dialog</h4>
+                            <p>Your browser's print dialog will open. Select "Save as PDF" as the destination.</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-content">
+                            <h4>Save File</h4>
+                            <p>Choose your save location and click Save. The PDF will include all case analysis content.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Export Hearing Transcript</h3>
+                <p>During or after a hearing simulation:</p>
+                <ol>
+                    <li>Click the green "Export PDF" button in the simulation header</li>
+                    <li>Select "Save as PDF" in the print dialog</li>
+                    <li>The transcript includes all arguments, judge's remarks, and the final judgment</li>
+                </ol>
+
+                <h3>What's Included in Exports</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Case Brief Export</th>
+                                <th>Hearing Transcript Export</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Case chronology with dates</td>
+                                <td>Complete transcript of arguments</td>
+                            </tr>
+                            <tr>
+                                <td>Key facts for each party</td>
+                                <td>Judge's questions and remarks</td>
+                            </tr>
+                            <tr>
+                                <td>Evidence listing</td>
+                                <td>Your responses</td>
+                            </tr>
+                            <tr>
+                                <td>Legal theories</td>
+                                <td>Final judgment</td>
+                            </tr>
+                            <tr>
+                                <td>Strengths and weaknesses</td>
+                                <td>Hearing metadata</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- API Keys Section -->
+            <section id="api-keys">
+                <h2>🔑 Managing API Keys</h2>
+
+                <p>API keys are essential for NyayaSutra's AI features. Managing them properly ensures uninterrupted service.</p>
+
+                <h3>API Key Manager</h3>
+                <p>Access the API Key Manager by clicking the "API Keys" section at the bottom of the left sidebar.</p>
+
+                <h4>Key Status Indicators</h4>
+                <ul>
+                    <li><strong style="color: #22c55e;">● Green (Active):</strong> Key is working correctly</li>
+                    <li><strong style="color: #ef4444;">● Red (Failed):</strong> Key hit rate limit or is invalid</li>
+                    <li><strong style="color: #6b7280;">● Gray (Unknown):</strong> Key hasn't been used yet</li>
+                </ul>
+
+                <h3>Adding Keys</h3>
+                <h4>Single Key</h4>
+                <ol>
+                    <li>Expand the API Keys section</li>
+                    <li>Paste your key in the input field</li>
+                    <li>Press Enter or click the + button</li>
+                </ol>
+
+                <h4>Bulk Import</h4>
+                <ol>
+                    <li>Click "Bulk Import" tab</li>
+                    <li>Paste multiple keys (one per line)</li>
+                    <li>Click "Import Keys"</li>
+                </ol>
+
+                <h3>Automatic Failover</h3>
+                <p>When a key hits rate limits:</p>
+                <ol>
+                    <li>The key is marked as "failed" with a red indicator</li>
+                    <li>The system automatically tries the next available key</li>
+                    <li>Failed keys are retried after a 60-second cooldown</li>
+                    <li>You can manually reset failed keys using the refresh button</li>
+                </ol>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>
+                        <strong>Best Practice:</strong> Maintain 3-5 API keys for smooth operation. Free tier keys have limits, so multiple keys ensure continuous availability.
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ Section -->
+            <section id="faq">
+                <h2>❓ Frequently Asked Questions</h2>
+
+                <div class="faq-item">
+                    <div class="faq-question">Why is the AI analysis taking too long?</div>
+                    <div class="faq-answer">
+                        Analysis time depends on the number and size of documents. Each document is analyzed individually for thorough extraction. For large cases with many documents, this can take several minutes. Ensure you have a stable internet connection and valid API keys.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I use NyayaSutra for real court cases?</div>
+                    <div class="faq-answer">
+                        NyayaSutra is designed for legal research, education, and case preparation. While the AI provides detailed analysis, it should be used as a research tool alongside professional legal judgment. Always consult with qualified legal professionals for actual court proceedings.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">My API key shows as "failed". What should I do?</div>
+                    <div class="faq-answer">
+                        API keys can fail due to rate limits (too many requests) or quota exhaustion. Wait 60 seconds for automatic retry, or click the refresh icon to reset manually. If the problem persists, create a new API key from Google AI Studio.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Are my documents secure?</div>
+                    <div class="faq-answer">
+                        Your documents are processed locally in your browser and stored in your browser's IndexedDB storage. Document content is sent to Google's Gemini AI for analysis. We recommend not uploading highly sensitive documents and reviewing Google's AI data policies.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I edit the AI-generated content?</div>
+                    <div class="faq-answer">
+                        Yes! You can edit chronology events, key facts, legal theories, and even arguments during simulation. After editing, you can regenerate analysis or continue the simulation with your modifications.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do I delete a project?</div>
+                    <div class="faq-answer">
+                        On the Dashboard, hover over a project card and click the trash icon that appears. Confirm the deletion. This action cannot be undone.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">What document formats are supported?</div>
+                    <div class="faq-answer">
+                        NyayaSutra supports PDF (.pdf), Microsoft Word (.docx), and plain text (.txt) files. For best results with PDFs, ensure they contain selectable text (not just scanned images).
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I use NyayaSutra offline?</div>
+                    <div class="faq-answer">
+                        No, NyayaSutra requires an internet connection as it uses cloud-based AI services for document analysis and simulation. Your project data is stored locally, but AI features need connectivity.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do I report bugs or suggest features?</div>
+                    <div class="faq-answer">
+                        Please report issues and suggestions on our GitHub repository at <a href="https://github.com/ratneshs230/Digital-Courtroom/issues" target="_blank">github.com/ratneshs230/Digital-Courtroom/issues</a>.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tips Section -->
+            <section>
+                <h2>💡 Tips for Best Results</h2>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="icon">📄</div>
+                        <h4>Quality Documents</h4>
+                        <p>Upload clear, text-readable documents. Avoid low-quality scans or image-only PDFs.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">📝</div>
+                        <h4>Complete Information</h4>
+                        <p>Include all relevant documents - FIRs, affidavits, orders, evidence. More context = better analysis.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🎯</div>
+                        <h4>Clear Strategy</h4>
+                        <p>When setting up hearings, provide a clear strategy to guide your AI representation.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🔑</div>
+                        <h4>Multiple API Keys</h4>
+                        <p>Use 3-5 API keys for uninterrupted service during long analysis or simulation sessions.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">✏️</div>
+                        <h4>Review & Edit</h4>
+                        <p>Always review AI-generated content and edit as needed. The AI provides a starting point.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">💾</div>
+                        <h4>Export Regularly</h4>
+                        <p>Export important case briefs and transcripts as PDFs for backup and sharing.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <h3>⚖️ NyayaSutra</h3>
+            <p>AI-Powered Indian Court Simulator</p>
+            <p>Built for legal education and research</p>
+            <div class="footer-links">
+                <a href="https://github.com/ratneshs230/Digital-Courtroom" target="_blank">GitHub</a>
+                <a href="https://aistudio.google.com/apikey" target="_blank">Get API Key</a>
+                <a href="#overview">Back to Top</a>
+            </div>
+            <p style="margin-top: 30px; font-size: 0.8rem; opacity: 0.6;">© 2025 NyayaSutra. For educational purposes only.</p>
+        </div>
+    </footer>
+
+    <!-- Smooth scroll for navigation -->
+    <script>
+        // Highlight active navigation
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.nav a');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').slice(1) === current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
