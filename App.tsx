@@ -1,42 +1,87 @@
-import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Gavel, FolderOpen, Plus, FileText, Scale, Key } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { LayoutDashboard, Gavel, FolderOpen, Calendar, Scale, Key, Loader2, Database } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import ProjectView from './components/ProjectView';
+import HearingsPage from './components/HearingsPage';
 import SimulationRoom from './components/Simulation';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import { Project, Session } from './types';
+import {
+  initStorage,
+  getAllProjects,
+  saveProject,
+  deleteProject as deleteProjectFromStorage,
+  getSessionsByProject,
+  saveSession,
+  saveProjectSessions,
+  getStorageStats,
+  isUsingFallback
+} from './services/storageService';
 
-// Simple mocked persistence
-const STORAGE_KEY = 'nyayasutra_data';
+// API key still uses localStorage for simplicity (small data, needs sync access)
 const API_KEY_STORAGE = 'gemini_api_key';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<'dashboard' | 'project' | 'simulation'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'project' | 'hearings' | 'simulation'>('dashboard');
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [apiKey, setApiKey] = useState('');
+  const [continuationSession, setContinuationSession] = useState<Session | null>(null);
 
-  // Load data and api key on mount
+  // Session state: Map of projectId -> sessions array
+  const [projectSessions, setProjectSessions] = useState<Record<string, Session[]>>({});
+
+  // Storage initialization state
+  const [isStorageInitialized, setIsStorageInitialized] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const [usingFallbackStorage, setUsingFallbackStorage] = useState(false);
+
+  // Initialize storage and load data on mount
   useEffect(() => {
-    const savedProjects = localStorage.getItem(STORAGE_KEY);
-    if (savedProjects) {
+    const initializeApp = async () => {
       try {
-        setProjects(JSON.parse(savedProjects));
-      } catch (e) {
-        console.error("Failed to load projects", e);
+        // Initialize IndexedDB storage (with automatic migration from localStorage)
+        await initStorage();
+        setUsingFallbackStorage(isUsingFallback());
+
+        // Load projects from storage
+        const loadedProjects = await getAllProjects();
+        setProjects(loadedProjects);
+
+        // Load sessions for all projects
+        const sessionsMap: Record<string, Session[]> = {};
+        for (const project of loadedProjects) {
+          try {
+            const sessions = await getSessionsByProject(project.id);
+            sessionsMap[project.id] = sessions;
+          } catch (e) {
+            console.error(`Failed to load sessions for project ${project.id}`, e);
+            sessionsMap[project.id] = [];
+          }
+        }
+        setProjectSessions(sessionsMap);
+
+        // Log storage stats
+        const stats = await getStorageStats();
+        console.log('Storage initialized:', stats);
+
+        setIsStorageInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize storage:', error);
+        setStorageError(error instanceof Error ? error.message : 'Unknown storage error');
+        setIsStorageInitialized(true); // Still mark as initialized to show UI
       }
-    }
-    
+    };
+
+    // Load API key from localStorage (sync, small data)
     const savedKey = localStorage.getItem(API_KEY_STORAGE);
     if (savedKey) {
       setApiKey(savedKey);
     }
-  }, []);
 
-  // Save projects to local storage on change
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-  }, [projects]);
+    initializeApp();
+  }, []);
 
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newKey = e.target.value;
@@ -44,9 +89,13 @@ const App: React.FC = () => {
     localStorage.setItem(API_KEY_STORAGE, newKey);
   };
 
-  const handleCreateProject = (project: Project) => {
+  const handleCreateProject = async (project: Project) => {
+    // Save to storage first
+    await saveProject(project);
+    // Update local state
     setProjects([project, ...projects]);
     setActiveProject(project);
+    setProjectSessions(prev => ({ ...prev, [project.id]: [] }));
     setView('project');
   };
 
@@ -55,9 +104,18 @@ const App: React.FC = () => {
     setView('project');
   };
 
-  const handleDeleteProject = (projectId: string) => {
+  const handleDeleteProject = async (projectId: string) => {
+    // Delete from storage
+    await deleteProjectFromStorage(projectId);
+    // Update local state
     const updatedProjects = projects.filter(p => p.id !== projectId);
     setProjects(updatedProjects);
+    // Clean up sessions from state
+    setProjectSessions(prev => {
+      const newSessions = { ...prev };
+      delete newSessions[projectId];
+      return newSessions;
+    });
     // If the active project is deleted, go back to dashboard
     if (activeProject && activeProject.id === projectId) {
       setActiveProject(null);
@@ -68,6 +126,10 @@ const App: React.FC = () => {
   const handleStartSession = (session: Session) => {
     setActiveSession(session);
     setView('simulation');
+  };
+
+  const handleProceedToHearings = () => {
+    setView('hearings');
   };
 
   const handleBackToDashboard = () => {
@@ -81,11 +143,90 @@ const App: React.FC = () => {
     setView('project');
   };
 
-  // Update a specific project in state (e.g. adding a session)
-  const updateProject = (updatedProject: Project) => {
-    setProjects(projects.map(p => p.id === updatedProject.id ? updatedProject : p));
-    setActiveProject(updatedProject);
+  const handleBackToHearings = () => {
+    setActiveSession(null);
+    setContinuationSession(null);
+    setView('hearings');
   };
+
+  const handleContinueSession = (parentSession: Session) => {
+    setContinuationSession(parentSession);
+    setActiveSession(null);
+    setView('hearings');
+  };
+
+  const handleClearContinuationSession = useCallback(() => {
+    setContinuationSession(null);
+  }, []);
+
+  // Update a specific project in state (e.g. adding a session)
+  const updateProject = useCallback(async (updatedProject: Project) => {
+    // Save to storage
+    await saveProject(updatedProject);
+    // Update local state
+    setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
+    setActiveProject(updatedProject);
+  }, []);
+
+  // Get sessions for the active project
+  const getActiveProjectSessions = useCallback((): Session[] => {
+    if (!activeProject) return [];
+    return projectSessions[activeProject.id] || [];
+  }, [activeProject, projectSessions]);
+
+  // Update sessions for a project (called from HearingsPage and Simulation)
+  const handleUpdateProjectSessions = useCallback(async (projectId: string, sessions: Session[]) => {
+    // Update local state first for responsiveness
+    setProjectSessions(prev => ({
+      ...prev,
+      [projectId]: sessions
+    }));
+    // Persist to IndexedDB
+    await saveProjectSessions(projectId, sessions);
+  }, []);
+
+  // Update a single session (called from Simulation when session progresses)
+  const updateSessionHandler = useCallback(async (updatedSession: Session) => {
+    const projectId = updatedSession.projectId;
+
+    // Update local state first for responsiveness
+    setProjectSessions(prev => {
+      const currentSessions = prev[projectId] || [];
+      const updatedSessions = currentSessions.map(s =>
+        s.id === updatedSession.id ? updatedSession : s
+      );
+      return {
+        ...prev,
+        [projectId]: updatedSessions
+      };
+    });
+
+    // Also update activeSession if it's the same session
+    if (activeSession && activeSession.id === updatedSession.id) {
+      setActiveSession(updatedSession);
+    }
+
+    // Persist to IndexedDB
+    await saveSession(updatedSession);
+  }, [activeSession]);
+
+  // Show loading screen while storage initializes
+  if (!isStorageInitialized) {
+    return (
+      <div className="min-h-screen bg-legal-50 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center">
+            <Database className="h-12 w-12 text-saffron animate-pulse" />
+          </div>
+          <div className="flex items-center justify-center gap-2">
+            <Loader2 className="h-5 w-5 animate-spin text-legal-600" />
+            <span className="text-legal-700 font-medium">Initializing storage...</span>
+          </div>
+          <p className="text-xs text-legal-500">Loading your projects and sessions</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-legal-50 flex flex-col md:flex-row">
@@ -109,17 +250,27 @@ const App: React.FC = () => {
           </button>
           
           {activeProject && (
-            <button 
-              onClick={handleBackToProject}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${view === 'project' ? 'bg-legal-800 text-saffron border-l-4 border-saffron' : 'hover:bg-legal-800 text-gray-300'}`}
-            >
-              <FolderOpen size={20} />
-              <span className="font-medium truncate">{activeProject.name}</span>
-            </button>
+            <>
+              <button
+                onClick={handleBackToProject}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${view === 'project' ? 'bg-legal-800 text-saffron border-l-4 border-saffron' : 'hover:bg-legal-800 text-gray-300'}`}
+              >
+                <FolderOpen size={20} />
+                <span className="font-medium truncate">{activeProject.name}</span>
+              </button>
+
+              <button
+                onClick={handleProceedToHearings}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${view === 'hearings' ? 'bg-legal-800 text-saffron border-l-4 border-saffron' : 'hover:bg-legal-800 text-gray-300'}`}
+              >
+                <Calendar size={20} />
+                <span className="font-medium">Hearings</span>
+              </button>
+            </>
           )}
 
           {view === 'simulation' && (
-            <button 
+            <button
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg bg-legal-800 text-indiaGreen border-l-4 border-indiaGreen animate-pulse`}
             >
               <Gavel size={20} />
@@ -133,48 +284,79 @@ const App: React.FC = () => {
              <label className="text-[10px] uppercase text-legal-500 font-semibold tracking-wider flex items-center gap-1">
                <Key size={10} /> Gemini API Key
              </label>
-             <input 
-               type="password" 
+             <input
+               type="password"
                value={apiKey}
                onChange={handleApiKeyChange}
                placeholder="Paste API Key..."
                className="w-full bg-legal-900 border border-legal-800 rounded px-2 py-1.5 text-xs text-gray-300 focus:border-saffron focus:ring-1 focus:ring-saffron outline-none transition-all placeholder-gray-700"
              />
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-500 space-y-1">
             <p>© 2025 NyayaSutra AI.</p>
             <p>Indian Legal Simulator.</p>
+            <div className="flex items-center gap-1 pt-1">
+              <Database size={10} className={usingFallbackStorage ? 'text-yellow-500' : 'text-green-500'} />
+              <span className={usingFallbackStorage ? 'text-yellow-500' : 'text-green-500'}>
+                {usingFallbackStorage ? 'LocalStorage' : 'IndexedDB'}
+              </span>
+            </div>
+            {storageError && (
+              <p className="text-red-400 text-[10px]">{storageError}</p>
+            )}
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
-        {view === 'dashboard' && (
-          <Dashboard 
-            projects={projects} 
-            onCreateProject={handleCreateProject} 
-            onSelectProject={handleSelectProject} 
-            onDeleteProject={handleDeleteProject}
-          />
-        )}
-        
-        {view === 'project' && activeProject && (
-          <ProjectView 
-            project={activeProject} 
-            onStartSession={handleStartSession}
-            onBack={handleBackToDashboard}
-            onUpdateProject={updateProject}
-          />
-        )}
+        <ErrorBoundary componentName="Dashboard" showDetails>
+          {view === 'dashboard' && (
+            <Dashboard
+              projects={projects}
+              onCreateProject={handleCreateProject}
+              onSelectProject={handleSelectProject}
+              onDeleteProject={handleDeleteProject}
+            />
+          )}
+        </ErrorBoundary>
 
-        {view === 'simulation' && activeSession && activeProject && (
-          <SimulationRoom 
-            session={activeSession}
-            project={activeProject}
-            onBack={handleBackToProject}
-          />
-        )}
+        <ErrorBoundary componentName="Project View" showDetails>
+          {view === 'project' && activeProject && (
+            <ProjectView
+              project={activeProject}
+              onProceedToHearings={handleProceedToHearings}
+              onBack={handleBackToDashboard}
+              onUpdateProject={updateProject}
+            />
+          )}
+        </ErrorBoundary>
+
+        <ErrorBoundary componentName="Hearings" showDetails>
+          {view === 'hearings' && activeProject && (
+            <HearingsPage
+              project={activeProject}
+              onBack={handleBackToProject}
+              onStartHearing={handleStartSession}
+              initialContinuationSession={continuationSession}
+              onClearContinuationSession={handleClearContinuationSession}
+              sessions={getActiveProjectSessions()}
+              onUpdateSessions={(sessions) => handleUpdateProjectSessions(activeProject.id, sessions)}
+            />
+          )}
+        </ErrorBoundary>
+
+        <ErrorBoundary componentName="Courtroom Simulation" showDetails>
+          {view === 'simulation' && activeSession && activeProject && (
+            <SimulationRoom
+              session={activeSession}
+              project={activeProject}
+              onBack={handleBackToHearings}
+              onContinueSession={handleContinueSession}
+              onSessionUpdate={updateSessionHandler}
+            />
+          )}
+        </ErrorBoundary>
       </main>
     </div>
   );

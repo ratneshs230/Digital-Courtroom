@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Folder, FileText, Upload, X, ShieldCheck, Scale, Trash2 } from 'lucide-react';
+import { Plus, Folder, FileText, Upload, X, ShieldCheck, Scale, Trash2, RefreshCw } from 'lucide-react';
 import { Project, Role, CaseFile } from '../types';
-import { analyzeLegalContext } from '../services/geminiService';
 import { processFiles, ProcessFilesResult } from '../utils/fileProcessor';
 
 interface DashboardProps {
@@ -14,20 +13,19 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject, onSelectProject, onDeleteProject }) => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   // Form State
   const [name, setName] = useState('');
   const [caseTitle, setCaseTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [userSide, setUserSide] = useState<Role>(Role.Petitioner);
+  const [userSide, setUserSide] = useState<Role.Petitioner | Role.Respondent>(Role.Petitioner);
   const [files, setFiles] = useState<CaseFile[]>([]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setLoading(true); // Show loading while processing PDFs
+      setLoading(true);
       const result: ProcessFilesResult = await processFiles(e.target.files);
 
-      // Notify user of failed files
       if (result.failedFiles.length > 0) {
         alert(`Could not process the following files:\n${result.failedFiles.join('\n')}\n\nThese files were skipped.`);
       }
@@ -38,23 +36,23 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject, onSele
   };
 
   const handleDeleteClick = (e: React.MouseEvent, projectId: string) => {
-    e.stopPropagation(); // Prevent opening the project when clicking delete
+    e.stopPropagation();
     if (window.confirm("Are you sure you want to delete this project? This action cannot be undone.")) {
-        onDeleteProject(projectId);
+      onDeleteProject(projectId);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (files.length === 0) {
+      alert('Please upload at least one case document.');
+      return;
+    }
+
     setLoading(true);
 
-    // 1. Generate Legal Context using AI
-    const legalContext = await analyzeLegalContext(
-      caseTitle || name,
-      description,
-      files.map(f => f.content)
-    );
-
+    // Create project with 'pending' status - perspectives will be generated in ProjectView
     const newProject: Project = {
       id: Date.now().toString(),
       name,
@@ -63,7 +61,7 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject, onSele
       userSide,
       files,
       createdAt: Date.now(),
-      legalContext
+      analysisStatus: 'pending'
     };
 
     onCreateProject(newProject);
@@ -80,6 +78,35 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject, onSele
     setFiles([]);
   };
 
+  const getStatusBadge = (project: Project) => {
+    if (project.analysisStatus === 'analyzing') {
+      return (
+        <span className="text-xs px-2 py-1 rounded-full border bg-yellow-50 text-yellow-700 border-yellow-200 flex items-center gap-1">
+          <RefreshCw size={10} className="animate-spin" /> Analyzing
+        </span>
+      );
+    }
+    if (project.analysisStatus === 'error') {
+      return (
+        <span className="text-xs px-2 py-1 rounded-full border bg-red-50 text-red-700 border-red-200">
+          Error
+        </span>
+      );
+    }
+    if (project.analysisStatus === 'completed') {
+      return (
+        <span className="text-xs px-2 py-1 rounded-full border bg-green-50 text-green-700 border-green-200">
+          Ready
+        </span>
+      );
+    }
+    return (
+      <span className="text-xs px-2 py-1 rounded-full border bg-gray-50 text-gray-600 border-gray-200">
+        Pending
+      </span>
+    );
+  };
+
   return (
     <div className="max-w-6xl mx-auto">
       <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -87,7 +114,7 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject, onSele
           <h2 className="text-3xl font-serif font-bold text-legal-900">Case Dashboard</h2>
           <p className="text-legal-500 mt-1">Manage your legal projects and simulations</p>
         </div>
-        <button 
+        <button
           onClick={() => setShowModal(true)}
           className="flex items-center justify-center gap-2 bg-legal-900 hover:bg-legal-800 text-white px-6 py-3 rounded-lg shadow-lg transition-all"
         >
@@ -102,8 +129,8 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject, onSele
             <Scale className="text-legal-400" size={40} />
           </div>
           <h3 className="text-xl font-semibold text-gray-800 mb-2">No Cases Yet</h3>
-          <p className="text-gray-500 max-w-md mx-auto mb-8">Start by creating a new case project. Upload your documents and let our AI analyze the legal landscape.</p>
-          <button 
+          <p className="text-gray-500 max-w-md mx-auto mb-8">Start by creating a new case project. Upload your documents and let our AI analyze the case from both perspectives.</p>
+          <button
             onClick={() => setShowModal(true)}
             className="text-saffron font-medium hover:underline"
           >
@@ -113,34 +140,35 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject, onSele
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map(project => (
-            <div 
+            <div
               key={project.id}
               onClick={() => onSelectProject(project)}
               className="group bg-white rounded-xl border border-legal-100 shadow-sm hover:shadow-xl transition-all cursor-pointer p-6 flex flex-col relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 w-1 h-full bg-legal-200 group-hover:bg-saffron transition-colors"></div>
-              
+
               <div className="flex justify-between items-start mb-4">
                 <div className="w-12 h-12 rounded-lg bg-legal-50 flex items-center justify-center text-legal-700">
                   <Folder size={24} />
                 </div>
-                <div className="flex gap-2">
-                    <span className={`text-xs px-2 py-1 rounded-full border ${project.userSide === Role.Petitioner ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                <div className="flex gap-2 items-center">
+                  {getStatusBadge(project)}
+                  <span className={`text-xs px-2 py-1 rounded-full border ${project.userSide === Role.Petitioner ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                     {project.userSide}
-                    </span>
-                    <button 
-                        onClick={(e) => handleDeleteClick(e, project.id)}
-                        className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                        title="Delete Project"
-                    >
-                        <Trash2 size={16} />
-                    </button>
+                  </span>
+                  <button
+                    onClick={(e) => handleDeleteClick(e, project.id)}
+                    className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                    title="Delete Project"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
-              
+
               <h3 className="font-serif font-bold text-lg text-gray-900 mb-1 group-hover:text-saffron transition-colors">{project.name}</h3>
               <p className="text-sm text-gray-500 mb-4 line-clamp-2">{project.caseTitle || "Untitled Case"}</p>
-              
+
               <div className="mt-auto pt-4 border-t border-legal-50 flex items-center justify-between text-xs text-gray-400">
                 <span className="flex items-center gap-1">
                   <FileText size={14} /> {project.files.length} Docs
@@ -162,15 +190,15 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject, onSele
                 <X size={24} />
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Project Name *</label>
-                  <input 
-                    required 
-                    type="text" 
-                    value={name} 
+                  <input
+                    required
+                    type="text"
+                    value={name}
                     onChange={e => setName(e.target.value)}
                     placeholder="e.g. Sharma vs State"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-saffron focus:border-transparent outline-none"
@@ -178,9 +206,9 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject, onSele
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Case Title</label>
-                  <input 
-                    type="text" 
-                    value={caseTitle} 
+                  <input
+                    type="text"
+                    value={caseTitle}
                     onChange={e => setCaseTitle(e.target.value)}
                     placeholder="Official Case No./Title"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-saffron focus:border-transparent outline-none"
@@ -189,29 +217,30 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject, onSele
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea 
-                  value={description} 
+                <label className="block text-sm font-medium text-gray-700 mb-1">Case Description *</label>
+                <textarea
+                  required
+                  value={description}
                   onChange={e => setDescription(e.target.value)}
-                  placeholder="Brief summary of the case facts..."
+                  placeholder="Describe the case facts, parties involved, and key issues..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-saffron focus:border-transparent outline-none h-24"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Which side are you on?</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Which side are you representing?</label>
                 <div className="grid grid-cols-2 gap-4">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setUserSide(Role.Petitioner)}
-                    className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${userSide === Role.Petitioner ? 'border-legal-800 bg-legal-50 text-legal-900' : 'border-gray-200 text-gray-400'}`}
+                    className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${userSide === Role.Petitioner ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-400'}`}
                   >
                     <ShieldCheck size={20} /> Petitioner
                   </button>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setUserSide(Role.Respondent)}
-                    className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${userSide === Role.Respondent ? 'border-legal-800 bg-legal-50 text-legal-900' : 'border-gray-200 text-gray-400'}`}
+                    className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 transition-all ${userSide === Role.Respondent ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-400'}`}
                   >
                     <ShieldCheck size={20} /> Respondent
                   </button>
@@ -219,18 +248,18 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject, onSele
               </div>
 
               <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 bg-gray-50 text-center">
-                <input 
-                  type="file" 
-                  id="file-upload" 
-                  multiple 
+                <input
+                  type="file"
+                  id="file-upload"
+                  multiple
                   accept=".txt,.pdf,.docx"
                   onChange={handleFileChange}
-                  className="hidden" 
+                  className="hidden"
                 />
                 <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
                   <Upload className="text-gray-400 mb-2" size={32} />
-                  <span className="text-sm font-medium text-legal-700">Upload Affidavits, Evidence, Proceedings</span>
-                  <span className="text-xs text-gray-500 mt-1">Supported: PDF, DOCX, TXT</span>
+                  <span className="text-sm font-medium text-legal-700">Upload Case Documents *</span>
+                  <span className="text-xs text-gray-500 mt-1">FIR, Affidavits, Evidence, Proceedings (PDF, DOCX, TXT)</span>
                 </label>
                 {files.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2 justify-center">
@@ -244,17 +273,21 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreateProject, onSele
                 {loading && <p className="text-xs text-saffron mt-2 animate-pulse">Processing files...</p>}
               </div>
 
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+                <strong>What happens next:</strong> After creating the project, our AI will analyze the documents from both the Petitioner's and Respondent's perspectives. You can review and edit these analyses.
+              </div>
+
               <div className="pt-4 flex justify-end gap-3">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowModal(false)}
                   className="px-6 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit" 
-                  disabled={loading}
+                <button
+                  type="submit"
+                  disabled={loading || files.length === 0}
                   className="px-6 py-2 bg-saffron hover:bg-orange-500 text-white font-medium rounded-lg shadow-md disabled:opacity-50 flex items-center gap-2"
                 >
                   {loading ? (
