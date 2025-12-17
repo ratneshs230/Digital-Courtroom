@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { LayoutDashboard, Gavel, FolderOpen, Calendar, Scale, Loader2, Database } from 'lucide-react';
+import { LayoutDashboard, Gavel, FolderOpen, Calendar, Scale, Loader2, Database, Archive } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import ProjectView from './components/ProjectView';
 import HearingsPage from './components/HearingsPage';
 import SimulationRoom from './components/Simulation';
+import ArchivesPage from './components/ArchivesPage';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import ApiKeyManager from './components/ApiKeyManager';
 import { Project, Session } from './types';
@@ -23,7 +24,7 @@ import {
 const API_KEY_STORAGE = 'gemini_api_key';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<'dashboard' | 'project' | 'hearings' | 'simulation'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'project' | 'hearings' | 'simulation' | 'archives'>('dashboard');
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -241,14 +242,22 @@ const App: React.FC = () => {
         </div>
         
         <nav className="flex-1 py-6 px-3 space-y-2">
-          <button 
+          <button
             onClick={handleBackToDashboard}
             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${view === 'dashboard' ? 'bg-legal-800 text-saffron border-l-4 border-saffron' : 'hover:bg-legal-800 text-gray-300'}`}
           >
             <LayoutDashboard size={20} />
             <span className="font-medium">Dashboard</span>
           </button>
-          
+
+          <button
+            onClick={() => setView('archives')}
+            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${view === 'archives' ? 'bg-legal-800 text-saffron border-l-4 border-saffron' : 'hover:bg-legal-800 text-gray-300'}`}
+          >
+            <Archive size={20} />
+            <span className="font-medium">Archives</span>
+          </button>
+
           {activeProject && (
             <>
               <button
@@ -310,6 +319,12 @@ const App: React.FC = () => {
               onSelectProject={handleSelectProject}
               onDeleteProject={handleDeleteProject}
             />
+          )}
+        </ErrorBoundary>
+
+        <ErrorBoundary componentName="Archives" showDetails>
+          {view === 'archives' && (
+            <ArchivesPage />
           )}
         </ErrorBoundary>
 

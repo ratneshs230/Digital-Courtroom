@@ -10,6 +10,9 @@ import {
   cacheDocumentAnalysis
 } from './cacheService';
 import {
+  getArchiveDocumentsForContext
+} from './storageService';
+import {
   IndianState,
   CourtLevel,
   buildJurisdictionContext,
@@ -1168,6 +1171,22 @@ export const chatWithPerspectiveAgent = async (
     return `Document: ${f.name} ${metaStr}\n${f.content}`;
   }).join('\n\n---\n\n').substring(0, 25000);
 
+  // Get attached archive documents for case law reference
+  let archiveReference = '';
+  if (project.attachedArchiveIds && project.attachedArchiveIds.length > 0) {
+    try {
+      const archiveDocs = await getArchiveDocumentsForContext(project.attachedArchiveIds);
+      if (archiveDocs.length > 0) {
+        archiveReference = `
+ATTACHED CASE LAW ARCHIVES (for reference when discussing precedents):
+${archiveDocs.substring(0, 6000)}
+`;
+      }
+    } catch (error) {
+      console.error('Error fetching archive context:', error);
+    }
+  }
+
   // Include newly attached files
   const attachedContent = attachedFiles && attachedFiles.length > 0
     ? `\n\nNEWLY ATTACHED FILES BY USER:\n${attachedFiles.map(f => {
@@ -1258,6 +1277,7 @@ Weaknesses: ${perspective.weaknesses.join('\n- ')}
 CASE DOCUMENTS (for reference):
 ${documentContents}
 ${attachedContent}
+${archiveReference}
 
 USER'S MESSAGE:
 ${userMessage}
@@ -1707,6 +1727,28 @@ export const generateTurn = async (
     ? `RECENT DEVELOPMENTS:\n${session.recentDevelopments.map(d => d.content).join('\n---\n').substring(0, 5000)}`
     : '';
 
+  // Get attached archive documents for case law reference
+  let archiveContext = '';
+  if (project.attachedArchiveIds && project.attachedArchiveIds.length > 0) {
+    try {
+      const archiveDocs = await getArchiveDocumentsForContext(project.attachedArchiveIds);
+      if (archiveDocs.length > 0) {
+        archiveContext = `
+ATTACHED CASE LAW ARCHIVES (You may cite these precedents):
+${archiveDocs.substring(0, 8000)}
+
+IMPORTANT: When citing precedents from these archives:
+1. Use the exact citation format provided
+2. Reference the specific principle that applies
+3. Explain how it supports your argument
+4. Respect the court hierarchy (Supreme Court > High Court > District Court)
+`;
+      }
+    } catch (error) {
+      console.error('Error fetching archive context:', error);
+    }
+  }
+
   // Check if generating for user's side
   const isUserSide = nextSpeaker === project.userSide;
   const userStrategy = session.userStrategy?.intent || session.reason || '';
@@ -1758,6 +1800,7 @@ RESPONDENT'S POSITION:
 ${respondentContext}
 
 ${recentDevelopments}
+${archiveContext}
 
 AVAILABLE DOCUMENTS:
 ${documentContext}

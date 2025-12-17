@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, RefreshCw, FileText, ChevronDown, ChevronUp, Edit3, Save, Calendar, Target, AlertTriangle, CheckCircle, Send, MessageSquare, Briefcase, Gavel, X, Loader2, Upload, Paperclip, FolderOpen, Plus, Trash2, GripVertical, RotateCcw, Columns, Clock, Download } from 'lucide-react';
-import { Project, CasePerspective, Role, Evidence, CaseFile, DocumentCategory, TimelineEvent } from '../types';
+import { ArrowLeft, RefreshCw, FileText, ChevronDown, ChevronUp, Edit3, Save, Calendar, Target, AlertTriangle, CheckCircle, Send, MessageSquare, Briefcase, Gavel, X, Loader2, Upload, Paperclip, FolderOpen, Plus, Trash2, GripVertical, RotateCcw, Columns, Clock, Download, Archive, Link2, Unlink } from 'lucide-react';
+import { Project, CasePerspective, Role, Evidence, CaseFile, DocumentCategory, TimelineEvent, Archive as ArchiveType } from '../types';
 import { analyzeAllDocuments, generatePerspectiveFromDrafts, chatWithPerspectiveAgent, regeneratePerspectiveFromEdit } from '../services/geminiService';
 import { processFiles, ProcessFilesResult } from '../utils/fileProcessor';
+import { getAllArchives, getArchivesByIds } from '../services/storageService';
 import DocumentPanel from './DocumentPanel';
 import ComparisonView from './ComparisonView';
 import TimelineVisualization from './TimelineVisualization';
@@ -61,6 +62,12 @@ const ProjectView: React.FC<ProjectViewProps> = ({ project, onProceedToHearings,
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
+  // Archive attachment state
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [availableArchives, setAvailableArchives] = useState<ArchiveType[]>([]);
+  const [attachedArchives, setAttachedArchives] = useState<ArchiveType[]>([]);
+  const [isLoadingArchives, setIsLoadingArchives] = useState(false);
+
   // Auto-generate perspectives if not done
   useEffect(() => {
     if (project.analysisStatus === 'pending' && project.files.length > 0) {
@@ -74,6 +81,23 @@ const ProjectView: React.FC<ProjectViewProps> = ({ project, onProceedToHearings,
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [project.petitionerPerspective?.chatHistory, project.respondentPerspective?.chatHistory]);
+
+  // Load attached archives when project changes
+  useEffect(() => {
+    const loadAttachedArchives = async () => {
+      if (project.attachedArchiveIds && project.attachedArchiveIds.length > 0) {
+        try {
+          const archives = await getArchivesByIds(project.attachedArchiveIds);
+          setAttachedArchives(archives);
+        } catch (error) {
+          console.error('Error loading attached archives:', error);
+        }
+      } else {
+        setAttachedArchives([]);
+      }
+    };
+    loadAttachedArchives();
+  }, [project.attachedArchiveIds]);
 
   const generatePerspectivesDocByDoc = async () => {
     setIsAnalyzing(true);
@@ -453,6 +477,48 @@ const ProjectView: React.FC<ProjectViewProps> = ({ project, onProceedToHearings,
     exportCaseToPDF(project.caseTitle || project.name, printContentRef.current);
   };
 
+  // Archive attachment functions
+  const openArchiveModal = async () => {
+    setShowArchiveModal(true);
+    setIsLoadingArchives(true);
+    try {
+      const archives = await getAllArchives();
+      setAvailableArchives(archives);
+    } catch (error) {
+      console.error('Error loading archives:', error);
+    } finally {
+      setIsLoadingArchives(false);
+    }
+  };
+
+  const isArchiveAttached = (archiveId: string): boolean => {
+    return project.attachedArchiveIds?.includes(archiveId) || false;
+  };
+
+  const toggleArchiveAttachment = (archiveId: string) => {
+    const currentAttached = project.attachedArchiveIds || [];
+    let newAttached: string[];
+
+    if (currentAttached.includes(archiveId)) {
+      newAttached = currentAttached.filter(id => id !== archiveId);
+    } else {
+      newAttached = [...currentAttached, archiveId];
+    }
+
+    onUpdateProject({
+      ...project,
+      attachedArchiveIds: newAttached
+    });
+  };
+
+  const detachArchive = (archiveId: string) => {
+    const newAttached = (project.attachedArchiveIds || []).filter(id => id !== archiveId);
+    onUpdateProject({
+      ...project,
+      attachedArchiveIds: newAttached
+    });
+  };
+
   const perspective = getCurrentPerspective();
 
   return (
@@ -523,6 +589,18 @@ const ProjectView: React.FC<ProjectViewProps> = ({ project, onProceedToHearings,
             Documents ({project.files.length})
           </button>
           <button
+            onClick={openArchiveModal}
+            className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-colors ${
+              attachedArchives.length > 0
+                ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                : 'bg-gray-100 hover:bg-gray-200'
+            }`}
+            title="Attach case law archives for AI reference"
+          >
+            <Archive size={16} />
+            Archives ({attachedArchives.length})
+          </button>
+          <button
             onClick={generatePerspectivesDocByDoc}
             disabled={isAnalyzing}
             className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
@@ -571,6 +649,36 @@ const ProjectView: React.FC<ProjectViewProps> = ({ project, onProceedToHearings,
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Attached Archives Display */}
+      {attachedArchives.length > 0 && (
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Archive size={16} className="text-purple-600" />
+            <span className="text-sm font-medium text-purple-800">Attached Archives ({attachedArchives.length})</span>
+            <span className="text-xs text-purple-600">- AI agents can reference these case laws</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {attachedArchives.map(archive => (
+              <div
+                key={archive.id}
+                className="flex items-center gap-2 bg-white border border-purple-200 rounded-lg px-3 py-1.5"
+              >
+                <Link2 size={12} className="text-purple-500" />
+                <span className="text-sm text-purple-800">{archive.name}</span>
+                <span className="text-xs text-purple-500">({archive.documentCount} docs)</span>
+                <button
+                  onClick={() => detachArchive(archive.id)}
+                  className="ml-1 p-0.5 text-purple-400 hover:text-red-500 hover:bg-red-50 rounded"
+                  title="Detach archive"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -1114,6 +1222,100 @@ const ProjectView: React.FC<ProjectViewProps> = ({ project, onProceedToHearings,
           </div>
         )}
       </div>
+      )}
+
+      {/* Archive Selection Modal */}
+      {showArchiveModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Attach Archives</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Select case law archives for AI agents to reference during analysis
+                </p>
+              </div>
+              <button
+                onClick={() => setShowArchiveModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {isLoadingArchives ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 size={24} className="animate-spin text-purple-600" />
+                  <span className="ml-2 text-gray-600">Loading archives...</span>
+                </div>
+              ) : availableArchives.length === 0 ? (
+                <div className="text-center py-8">
+                  <Archive size={48} className="mx-auto text-gray-300 mb-4" />
+                  <p className="text-gray-600">No archives available</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Create archives from the Archives section in the sidebar
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {availableArchives.map(archive => {
+                    const isAttached = isArchiveAttached(archive.id);
+                    return (
+                      <div
+                        key={archive.id}
+                        onClick={() => toggleArchiveAttachment(archive.id)}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                          isAttached
+                            ? 'border-purple-400 bg-purple-50'
+                            : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center ${
+                            isAttached
+                              ? 'border-purple-500 bg-purple-500'
+                              : 'border-gray-300'
+                          }`}>
+                            {isAttached && (
+                              <CheckCircle size={14} className="text-white" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-gray-900">{archive.name}</h4>
+                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                                {archive.documentCount} documents
+                              </span>
+                            </div>
+                            {archive.description && (
+                              <p className="text-sm text-gray-600 mt-1">{archive.description}</p>
+                            )}
+                            <p className="text-xs text-gray-400 mt-1">
+                              Updated {new Date(archive.updatedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
+              <span className="text-sm text-gray-600">
+                {(project.attachedArchiveIds || []).length} archive(s) attached
+              </span>
+              <button
+                onClick={() => setShowArchiveModal(false)}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Document Panel */}

@@ -3,7 +3,7 @@
  * Provides async storage operations with localStorage fallback
  */
 
-import { Project, Session } from '../types';
+import { Project, Session, Archive, ArchiveDocument } from '../types';
 
 // Database configuration
 const DB_NAME = 'nyayasutra_db';
@@ -952,3 +952,191 @@ export const initStorage = async (): Promise<void> => {
 
 // Export for checking fallback status
 export const isUsingFallback = (): boolean => useLocalStorageFallback;
+
+// ============================================
+// ARCHIVE OPERATIONS (localStorage-based for simplicity)
+// ============================================
+
+const ARCHIVES_KEY = 'nyayasutra_archives';
+
+/**
+ * Get all archives
+ */
+export const getAllArchives = async (): Promise<Archive[]> => {
+  const data = localStorage.getItem(ARCHIVES_KEY);
+  if (!data) return [];
+  try {
+    const archives: Archive[] = JSON.parse(data);
+    return archives.sort((a, b) => b.updatedAt - a.updatedAt);
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Get a single archive by ID
+ */
+export const getArchive = async (id: string): Promise<Archive | undefined> => {
+  const archives = await getAllArchives();
+  return archives.find(a => a.id === id);
+};
+
+/**
+ * Get multiple archives by IDs
+ */
+export const getArchivesByIds = async (ids: string[]): Promise<Archive[]> => {
+  const archives = await getAllArchives();
+  return archives.filter(a => ids.includes(a.id));
+};
+
+/**
+ * Save an archive (create or update)
+ */
+export const saveArchive = async (archive: Archive): Promise<void> => {
+  const archives = await getAllArchives();
+  const index = archives.findIndex(a => a.id === archive.id);
+
+  // Update document count
+  archive.documentCount = archive.documents.length;
+  archive.updatedAt = Date.now();
+
+  if (index >= 0) {
+    archives[index] = archive;
+  } else {
+    archives.unshift(archive);
+  }
+
+  localStorage.setItem(ARCHIVES_KEY, JSON.stringify(archives));
+};
+
+/**
+ * Delete an archive
+ */
+export const deleteArchive = async (id: string): Promise<void> => {
+  const archives = await getAllArchives();
+  const filtered = archives.filter(a => a.id !== id);
+  localStorage.setItem(ARCHIVES_KEY, JSON.stringify(filtered));
+};
+
+/**
+ * Add a document to an archive
+ */
+export const addDocumentToArchive = async (
+  archiveId: string,
+  document: ArchiveDocument
+): Promise<void> => {
+  const archive = await getArchive(archiveId);
+  if (!archive) {
+    throw new Error('Archive not found');
+  }
+
+  archive.documents.push(document);
+  await saveArchive(archive);
+};
+
+/**
+ * Remove a document from an archive
+ */
+export const removeDocumentFromArchive = async (
+  archiveId: string,
+  documentId: string
+): Promise<void> => {
+  const archive = await getArchive(archiveId);
+  if (!archive) {
+    throw new Error('Archive not found');
+  }
+
+  archive.documents = archive.documents.filter(d => d.id !== documentId);
+  await saveArchive(archive);
+};
+
+/**
+ * Update a document in an archive
+ */
+export const updateArchiveDocument = async (
+  archiveId: string,
+  document: ArchiveDocument
+): Promise<void> => {
+  const archive = await getArchive(archiveId);
+  if (!archive) {
+    throw new Error('Archive not found');
+  }
+
+  const index = archive.documents.findIndex(d => d.id === document.id);
+  if (index >= 0) {
+    archive.documents[index] = document;
+    await saveArchive(archive);
+  }
+};
+
+/**
+ * Search documents across all archives or specific archives
+ */
+export const searchArchiveDocuments = async (
+  query: string,
+  archiveIds?: string[]
+): Promise<{ archive: Archive; document: ArchiveDocument }[]> => {
+  let archives = await getAllArchives();
+
+  if (archiveIds && archiveIds.length > 0) {
+    archives = archives.filter(a => archiveIds.includes(a.id));
+  }
+
+  const results: { archive: Archive; document: ArchiveDocument }[] = [];
+  const lowerQuery = query.toLowerCase();
+
+  for (const archive of archives) {
+    for (const doc of archive.documents) {
+      const searchableText = [
+        doc.name,
+        doc.citation,
+        doc.parties,
+        doc.summary,
+        doc.content,
+        ...(doc.keyPrinciples || []),
+        ...(doc.sectionsReferenced || [])
+      ].filter(Boolean).join(' ').toLowerCase();
+
+      if (searchableText.includes(lowerQuery)) {
+        results.push({ archive, document: doc });
+      }
+    }
+  }
+
+  return results;
+};
+
+/**
+ * Get archive documents for AI context (returns formatted content)
+ */
+export const getArchiveDocumentsForContext = async (
+  archiveIds: string[]
+): Promise<string> => {
+  if (!archiveIds || archiveIds.length === 0) return '';
+
+  const archives = await getArchivesByIds(archiveIds);
+  if (archives.length === 0) return '';
+
+  const contextParts: string[] = [];
+
+  for (const archive of archives) {
+    contextParts.push(`\n=== Archive: ${archive.name} ===\n`);
+
+    for (const doc of archive.documents) {
+      contextParts.push(`
+--- ${doc.name} ---
+${doc.citation ? `Citation: ${doc.citation}` : ''}
+${doc.court ? `Court: ${doc.court}` : ''}
+${doc.year ? `Year: ${doc.year}` : ''}
+${doc.parties ? `Parties: ${doc.parties}` : ''}
+${doc.keyPrinciples && doc.keyPrinciples.length > 0 ? `Key Principles:\n${doc.keyPrinciples.map(p => `  - ${p}`).join('\n')}` : ''}
+${doc.summary ? `Summary: ${doc.summary}` : ''}
+
+Full Text:
+${doc.content}
+`);
+    }
+  }
+
+  return contextParts.join('\n');
+};

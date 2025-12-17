@@ -213,6 +213,9 @@ export interface Project {
   // Document relationships
   documentRelationships?: DocumentRelationship[];
 
+  // Attached archives (case laws, judgments for AI reference)
+  attachedArchiveIds?: string[];
+
   // Analysis status
   analysisStatus: 'pending' | 'analyzing' | 'completed' | 'error';
   analysisError?: string;
@@ -288,4 +291,47 @@ export interface Session {
   // Legacy field for backward compatibility
   selectedFileIds?: string[];
   reason?: string;
+}
+
+// Archive categories for case laws and judgments
+export enum ArchiveCategory {
+  SupremeCourtJudgment = 'Supreme Court Judgment',
+  HighCourtJudgment = 'High Court Judgment',
+  DistrictCourtJudgment = 'District Court Judgment',
+  TribunalOrder = 'Tribunal Order',
+  CaseLaw = 'Case Law',
+  StatutoryProvision = 'Statutory Provision',
+  LegalArticle = 'Legal Article',
+  CircularNotification = 'Circular/Notification',
+  Other = 'Other'
+}
+
+// Individual document in an archive
+export interface ArchiveDocument {
+  id: string;
+  name: string;
+  type: string; // MIME type
+  content: string; // Full text content
+  category: ArchiveCategory;
+  citation?: string; // e.g., "AIR 2020 SC 1234"
+  court?: string; // Court name
+  year?: string; // Year of judgment
+  parties?: string; // e.g., "State of Maharashtra vs. XYZ"
+  summary?: string; // Brief summary
+  keyPrinciples?: string[]; // Key legal principles established
+  sectionsReferenced?: string[]; // Sections of law referenced
+  uploadedAt: number;
+  lastAccessedAt?: number;
+}
+
+// Archive collection
+export interface Archive {
+  id: string;
+  name: string;
+  description?: string;
+  documents: ArchiveDocument[];
+  createdAt: number;
+  updatedAt: number;
+  // Stats
+  documentCount: number;
 }
